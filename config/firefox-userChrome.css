@@ -1,0 +1,28 @@
+@-moz-document url("chrome://browser/content/browser.xhtml") {
+  /* Keep a normal, tiled window while giving the page the entire client area. */
+  :root {
+    min-width: 0 !important;
+    min-height: 0 !important;
+  }
+
+  #navigator-toolbox,
+  #sidebar-main,
+  #sidebar-box,
+  #sidebar-splitter,
+  #sidebar-launcher-splitter,
+  #statuspanel {
+    display: none !important;
+  }
+
+  #tabbrowser-tabbox,
+  .browserContainer {
+    margin: 0 !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+  }
+
+  #tabbrowser-tabpanels {
+    border-radius: 0 !important;
+  }
+}

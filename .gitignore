@@ -1,0 +1,9 @@
+node_modules/
+dist/
+.newsview-cache/
+.newsview-state/
+result
+result-*
+*.tsbuildinfo
+config.local.json
+test-results/

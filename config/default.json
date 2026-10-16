@@ -1,0 +1,14 @@
+{
+  "zip": "22314",
+  "slideSeconds": 25,
+  "radarAnimation": true,
+  "dim": false,
+  "sources": {
+    "headlines": ["NPR", "BBC", "Guardian", "Al Jazeera", "PBS NewsHour"],
+    "tech": ["Ars Technica", "The Verge", "TechCrunch"],
+    "science": ["Science News", "NASA", "Quanta Magazine"],
+    "local": ["WTOP", "ALXnow", "Virginia Mercury"],
+    "finance": ["BBC Business", "Guardian Business", "CNBC Economy"],
+    "social": []
+  }
+}

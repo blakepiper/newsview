@@ -1,0 +1,22 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+ROOT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
+if [[ ${1:-} == --help ]]; then
+  cat <<'HELP'
+Usage: ./newsview [--dev | --server | --connect URL]
+  (default)       Production server and dedicated, tiled Firefox app window
+  --dev           API plus Vite hot reload and dedicated Firefox
+  --server        Production server only; no graphical session needed
+  --connect URL   Open a running Newsview server (for container deployment)
+
+NEWSVIEW_PORT (3080), NEWSVIEW_CONFIG, NEWSVIEW_CACHE_DIR,
+NEWSVIEW_PROFILE, and NEWSVIEW_FIREFOX may be set in the environment.
+Ctrl+C or closing the display stops processes started by this invocation.
+HELP
+  exit 0
+fi
+command -v nix >/dev/null || { echo 'newsview: Nix with flakes is required.' >&2; exit 1; }
+SHELL_NAME=default
+[[ ${1:-} != --server ]] || SHELL_NAME=server
+exec nix --extra-experimental-features 'nix-command flakes' develop "$ROOT_DIR#$SHELL_NAME" \
+  --command bash "$ROOT_DIR/scripts/launch.sh" "$@"

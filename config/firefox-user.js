@@ -1,0 +1,12 @@
+user_pref("browser.shell.checkDefaultBrowser", false);
+user_pref("browser.startup.homepage_override.mstone", "ignore");
+user_pref("browser.startup.page", 0);
+user_pref("browser.aboutwelcome.enabled", false);
+user_pref("browser.sessionstore.resume_from_crash", false);
+user_pref("browser.tabs.warnOnClose", false);
+user_pref("browser.warnOnQuitShortcut", false);
+user_pref("datareporting.policy.dataSubmissionPolicyBypassNotification", true);
+user_pref("datareporting.healthreport.uploadEnabled", false);
+user_pref("browser.newtabpage.enabled", false);
+user_pref("toolkit.legacyUserProfileCustomizations.stylesheets", true);
+user_pref("browser.tabs.inTitlebar", 1);
