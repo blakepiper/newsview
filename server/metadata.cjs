@@ -11,7 +11,7 @@ function imageUrl(value, base) {
   }
 }
 
-function extractMetadata(html, base, allowInline = false) {
+function extractMetadataImages(html, base, allowInline = false) {
   const candidates = [];
   const parser = new Parser(
     {
@@ -45,12 +45,18 @@ function extractMetadata(html, base, allowInline = false) {
     { decodeEntities: true },
   );
   parser.end(String(html).slice(0, 1024 * 1024));
-  return (
-    candidates
-      .sort((a, b) => a.priority - b.priority)
-      .map((x) => imageUrl(x.url, base))
-      .find(Boolean) || null
-  );
+  return [
+    ...new Set(
+      candidates
+        .sort((a, b) => a.priority - b.priority)
+        .map((x) => imageUrl(x.url, base))
+        .filter(Boolean),
+    ),
+  ].slice(0, 3);
+}
+
+function extractMetadata(html, base, allowInline = false) {
+  return extractMetadataImages(html, base, allowInline)[0] || null;
 }
 
 function extractFeedImage(entry, base, description) {
@@ -73,4 +79,9 @@ function extractFeedImage(entry, base, description) {
   return extractMetadata(description || "", base, true);
 }
 
-module.exports = { imageUrl, extractMetadata, extractFeedImage };
+module.exports = {
+  imageUrl,
+  extractMetadata,
+  extractMetadataImages,
+  extractFeedImage,
+};

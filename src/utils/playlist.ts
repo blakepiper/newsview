@@ -86,5 +86,6 @@ export function nextStory(
   );
 }
 export function photoUrl(item: FeedItem) {
-  return `/api/image?${new URLSearchParams({ article: item.link, ...(item.image ? { image: item.image } : {}) })}`;
+  // Bypass browser-cached thumbnails from the original image selection policy.
+  return `/api/image?${new URLSearchParams({ v: "2", article: item.link, ...(item.image ? { image: item.image } : {}) })}`;
 }

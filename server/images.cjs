@@ -2,7 +2,12 @@ const fs = require("node:fs/promises");
 const path = require("node:path");
 const { createHash } = require("node:crypto");
 const { fetchPublic, parsePublicUrl } = require("./public-fetch.cjs");
-const { extractMetadata } = require("./metadata.cjs");
+const { extractMetadataImages } = require("./metadata.cjs");
+
+// Judge detail after resizing, using the landscape photo area as the target.
+function resolution(image) {
+  return Math.min(image.info.width / 1000, image.info.height / 560);
+}
 
 class ImageCache {
   constructor(
@@ -60,10 +65,11 @@ class ImageCache {
     if (next) next();
     else this.active--;
   }
-  async convert(url) {
+  async convert(url, timeoutMs = 12000) {
     const response = await this.fetcher(url, {
       maxBytes: 8 * 1024 * 1024,
       accept: "image/avif,image/webp,image/png,image/jpeg,image/gif",
+      timeoutMs,
     });
     if (
       ![
@@ -103,36 +109,64 @@ class ImageCache {
         withoutEnlargement: true,
       })
       .webp({ quality: 78, effort: 2 })
-      .toBuffer();
+      .toBuffer({ resolveWithObject: true });
   }
   async load(article, image) {
+    let best;
     if (image) {
       try {
-        return await this.convert(image);
+        best = await this.convert(image);
+        if (resolution(best) >= 1) return best.data;
       } catch {
         /* Try the publisher's metadata next. */
       }
     }
-    const page = await this.fetcher(article, {
-      maxBytes: 1024 * 1024,
-      accept: "text/html,application/xhtml+xml",
-    });
-    if (!["text/html", "application/xhtml+xml"].includes(page.type))
-      throw new Error("Not an article");
-    const candidate = extractMetadata(page.body.toString("utf8"), page.url);
-    if (!candidate || candidate === image) throw new Error("No article image");
-    return this.convert(candidate);
+    // An optional upgrade gets six seconds total, including metadata and images.
+    const deadline = Date.now() + (best ? 6000 : 12000);
+    const attempted = new Set(image ? [image] : []);
+    try {
+      const page = await this.fetcher(article, {
+        maxBytes: 1024 * 1024,
+        accept: "text/html,application/xhtml+xml",
+        timeoutMs: Math.max(1, deadline - Date.now()),
+      });
+      if (!["text/html", "application/xhtml+xml"].includes(page.type))
+        throw new Error("Not an article");
+      const candidates = extractMetadataImages(page.body.toString("utf8"), page.url);
+      for (const candidate of candidates) {
+        if (Date.now() >= deadline) break;
+        if (attempted.has(candidate)) continue;
+        attempted.add(candidate);
+        try {
+          const converted = await this.convert(candidate, Math.max(1, deadline - Date.now()));
+          if (!best || resolution(converted) > resolution(best)) best = converted;
+          if (resolution(best) >= 1) break;
+        } catch {
+          /* A broken alternative must not hide a usable photograph. */
+        }
+      }
+    } catch (error) {
+      if (!best) throw error;
+    }
+    if (!best) throw new Error("No article image");
+    return best.data;
   }
   async get(article, image = "") {
     parsePublicUrl(article);
     if (image) parsePublicUrl(image);
     await this.ready;
     const key = createHash("sha256")
-      .update(JSON.stringify([article, image]))
+      .update(JSON.stringify([2, article, image]))
       .digest("hex");
     const file = path.join(this.directory, `${key}.webp`);
-    const cached = this.entries.get(key);
-    if (cached && Date.now() - cached.at < 86400000) {
+    // Refresh old thumbnail selections lazily, retaining them during outages.
+    const legacyKey = createHash("sha256")
+      .update(JSON.stringify([article, image]))
+      .digest("hex");
+    const cachedKey = this.entries.has(key) ? key : legacyKey;
+    const cached = this.entries.get(cachedKey);
+    const cachedFile = path.join(this.directory, `${cachedKey}.webp`);
+    if (cached && cachedKey === key && Date.now() - cached.at < 86400000) {
       cached.used = Date.now();
       try {
         return await fs.readFile(file);
@@ -142,14 +176,26 @@ class ImageCache {
     }
     if (this.pending.has(key)) return this.pending.get(key);
     if (Date.now() - (this.failures.get(key) || 0) < 600000) {
-      if (cached) return fs.readFile(file);
+      if (cached) return fs.readFile(cachedFile);
       throw new Error("No image available");
     }
     if (this.pending.size >= 10) throw new Error("Image queue busy");
     const task = (async () => {
       await this.acquire();
       try {
-        const body = await this.load(article, image);
+        let body = await this.load(article, image);
+        if (cached) {
+          try {
+            const previous = await fs.readFile(cachedFile);
+            const sharp = require("sharp");
+            const currentInfo = await sharp(body).metadata();
+            const previousInfo = await sharp(previous).metadata();
+            if (resolution({ info: previousInfo }) > resolution({ info: currentInfo }))
+              body = previous;
+          } catch {
+            /* A missing or corrupt old cache must not prevent a fresh image. */
+          }
+        }
         if (body.length > this.maxBytes)
           throw new Error("Image exceeds cache budget");
         await fs.writeFile(`${file}.tmp`, body, { mode: 0o600 });
@@ -159,6 +205,10 @@ class ImageCache {
           used: Date.now(),
           size: body.length,
         });
+        if (cachedKey === legacyKey && cached) {
+          this.entries.delete(legacyKey);
+          await fs.rm(cachedFile, { force: true });
+        }
         await this.prune();
         return body;
       } catch (error) {
@@ -168,7 +218,7 @@ class ImageCache {
           this.failures.delete(this.failures.keys().next().value);
         if (cached) {
           try {
-            return await fs.readFile(file);
+            return await fs.readFile(cachedFile);
           } catch {
             /* Cache evicted. */
           }

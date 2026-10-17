@@ -63,6 +63,8 @@ Connecting to an existing server leaves that server under its original owner.
 - Sources default to a modest selection of world, technology, science,
   DC/Virginia, and business reporting. Social sources are available in settings.
 - Photographs come from feeds or the article's Open Graph/Twitter metadata.
+  Small feed images trigger a bounded search of that metadata for a larger photo;
+  the best available image is kept if an upgrade fails.
   While a photograph loads, or if none is available, a bundled Blake News Now
   logo fills the image area on black. Publisher HTML is never displayed.
 - Valid cached stories survive an offline restart. Data requests retry with
@@ -142,10 +144,13 @@ Use Blix's documented staged boot/reboot workflow when deploying host changes.
 ## Resource limits and reliability
 
 Feed snapshots retain normalized records, capped at 12 MiB. Images are resized
-to fit 1200×900, encoded as WebP, and cached up to 120 images / 96 MiB. Image
-fetches allow two active jobs and eight queued jobs. Inputs are bounded by bytes,
-dimensions, time, and redirects; each hop resolves only public IPs and pins
-those addresses for the connection. SVG content is rejected before decoding.
+to fit 1200×900 without enlargement, encoded as WebP, and cached up to
+120 images / 96 MiB. Feed images below 1000×560 trigger a metadata lookup and
+up to three alternative image downloads, sharing a six-second upgrade budget.
+Existing cached images remain available while older thumbnail selections are
+refreshed. Image fetches allow two active jobs and eight queued jobs. Inputs are
+bounded by bytes, dimensions, time, and redirects; each hop resolves only public
+IPs and pins those addresses for the connection. SVG content is rejected before decoding.
 Image/metadata failures are negatively cached for ten minutes.
 
 The radar retains four historical frames, refreshes metadata every five minutes,
