@@ -84,6 +84,13 @@ Settings include ZIP code, timing, radar animation, and individual
 sources. The ZIP code changes weather; local news follows the selected sources.
 Settings are local to the dedicated browser profile.
 
+News categories refresh every three minutes while the display is visible, with
+another check after two seconds when upstream feeds are still loading. Successful
+fetches in these categories log their story count and newest publication date;
+cached responses do not produce another fetch log. For per-source fetch times,
+errors and retry status, open `http://127.0.0.1:3080/api/source-health` (adjust the
+port if configured). Refreshes pause while the display is hidden.
+
 To supply initial settings, copy `config/default.json` to `config.local.json`
 and edit it. The launcher detects that file, or accepts `NEWSVIEW_CONFIG` as an
 absolute filename. Browser-saved settings take precedence. Restore defaults in

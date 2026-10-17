@@ -495,7 +495,9 @@ async function loadCategoryPool(category, prefix, requested = null) {
         feedDiagnostics.set(feed.name, { checkedAt: new Date().toISOString(), parsed: parsed.length,
           itemCount: eligible.length, filtered: dated.length - eligible.length, newestDate: newest?.pubDate.toISOString() || null,
           state: !eligible.length ? sourceKind(feed.name) === 'author' ? 'no-recent-publications' : 'no-recent-items' : 'ok' });
-        snapshots.set(key, normalizeCategoryItems(eligible, prefix));
+        const items = normalizeCategoryItems(eligible, prefix);
+        snapshots.set(key, items);
+        console.log(`[DATA] ${category}/${feed.name}: ${items.length} current stories; newest ${items[0]?.timestamp || 'none'}`);
       } catch (err) {
         feedDiagnostics.set(feed.name, { ...feedDiagnostics.get(feed.name), checkedAt: new Date().toISOString(), state: 'unavailable', error: describeError(err).slice(0, 160) });
         console.error(`[DATA] ${feed.name}:`, describeError(err));
