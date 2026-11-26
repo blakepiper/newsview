@@ -162,9 +162,10 @@ function createApp() {
 if (require.main === module) {
   const port = Number(process.env.PORT || 3080);
   const host = process.env.HOST || "127.0.0.1";
-  const server = createApp().listen(port, host, () =>
-    console.log(`Newsview: http://${host}:${port}`),
-  );
+  const server = createApp().listen(port, host, () => {
+    const urlHost = host.includes(":") ? `[${host}]` : host;
+    console.log(`Newsview frontend: http://${urlHost}:${server.address().port}`);
+  });
   server.on("error", (error) => {
     console.error(error.message);
     process.exitCode = 1;
