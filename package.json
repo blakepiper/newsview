@@ -13,6 +13,8 @@
     "qs": "6.16.0"
   },
   "scripts": {
+    "prestart": "node scripts/prepare.cjs",
+    "start": "node server/proxy.cjs",
     "dev": "vite --host 127.0.0.1",
     "server": "node server/proxy.cjs",
     "build": "tsc -b && vite build && node scripts/compress-assets.cjs",

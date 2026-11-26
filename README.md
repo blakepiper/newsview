@@ -14,6 +14,16 @@ starts at the top of the window with minimal gutters and a single-line footer.
 
 ## Launch
 
+With the Node.js and npm versions listed in `package.json`, run:
+
+```sh
+npm start
+```
+
+This installs locked dependencies and builds the frontend as needed, then serves
+the full display and its API at `http://127.0.0.1:3080`. Open that address in your
+browser. Set `PORT` to use a different port, and press Ctrl+C to stop the server.
+
 From a graphical Linux session with Nix installed:
 
 ```sh
